@@ -1,4 +1,6 @@
-﻿#include <iostream>
+﻿#define CL_USE_DEPRECATED_OPENCL_2_0_APIS
+
+#include <iostream>
 
 #include <SDL.h>
 
@@ -9,8 +11,27 @@
 #	include <SDL_opengl.h> // otherwise we want to use OpenGL
 #endif
 
+#include <CL/cl.hpp>
+
 int main(int argc, char* argv[])
 {
+	std::vector<cl::Platform> platforms;
+	cl::Platform::get(&platforms);
+
+	_ASSERT(platforms.size() > 0);
+
+	auto platform = platforms.front();
+	std::vector<cl::Device> devices;
+	platform.getDevices(CL_DEVICE_TYPE_ALL, &devices);
+
+	_ASSERT(devices.size() > 0);
+
+	auto device = devices.front();
+	auto vendor = device.getInfo<CL_DEVICE_VENDOR>();
+	auto version = device.getInfo<CL_DEVICE_VERSION>();
+
+	std::cout << vendor << " " << version << std::endl;
+
 	// Initialize SDL with video
 	SDL_Init(SDL_INIT_VIDEO);
 
