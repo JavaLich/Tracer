@@ -9,9 +9,9 @@ include_directories(${SDL2_INCLUDE_DIRS})
 find_package(OpenCL REQUIRED)
 
 # Add source to this project's executable.
-file(GLOB_RECURSE source_list "*.cpp" "*.hpp")
 
-add_executable (${PROJECT_NAME} ${source_list})
+
+add_executable (${PROJECT_NAME} main.cpp)
 
 target_link_libraries(Tracer ${SDL2_LIBRARIES})
 target_link_libraries(Tracer opengl32.lib)
