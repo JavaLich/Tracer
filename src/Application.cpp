@@ -14,6 +14,7 @@ Application::Application()
 
 void Application::init()
 {
+	initCL();
 	initSDL();
 }
 
@@ -22,7 +23,7 @@ void Application::run()
 	running = true;
 
 	SDL_Event event;	 // used to store any events from the OS
-	glClearColor(1, 1, 0, 1);
+	glClearColor(0, 0, 0, 1);
 	while (running)
 	{
 		// poll for events from SDL
@@ -63,6 +64,11 @@ void Application::initSDL()
 		// we'll print out an error message and exit
 		std::cerr << "Error failed to create a context\n!";
 	}
+}
+
+void Application::initCL()
+{
+	api = new ComputeAPI();
 }
 
 void Application::destroy()

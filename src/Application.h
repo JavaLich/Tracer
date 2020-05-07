@@ -9,6 +9,8 @@
 
 #include <iostream>
 
+#include "ComputeAPI.h"
+
 struct AppConfig {
 	int width = 800;
 	int height = 600;
@@ -25,6 +27,7 @@ public:
 	
 private:
 	void initSDL();
+	void initCL();
 	void destroy();
 
 private:
@@ -32,6 +35,8 @@ private:
 	SDL_GLContext context;
 
 	AppConfig config;
+
+	ComputeAPI* api;
 
 	bool running = false;
 };
