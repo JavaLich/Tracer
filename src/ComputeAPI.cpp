@@ -9,15 +9,22 @@ ComputeAPI::ComputeAPI()
 	init();
 }
 
-void ComputeAPI::render(uint32_t* pixels, int width, int height)
+void ComputeAPI::render(uint32_t* pixels, Sphere* spheres, unsigned int sphereCount, unsigned int width, unsigned int height)
 {
 	cl_int err;
-	cl::Buffer buffer1 = cl::Buffer(context, CL_MEM_WRITE_ONLY, (size_t)width * height * sizeof(uint32_t), pixels, &err);
-	cl::Kernel kernel(program, "render", &err);
-	kernel.setArg(0, buffer1);
+	cl::Buffer pixelBuffer = cl::Buffer(context, CL_MEM_WRITE_ONLY, (size_t)width * height * sizeof(uint32_t), nullptr, &err);
+	cl::Buffer sphereBuffer = cl::Buffer(context, CL_MEM_READ_ONLY, (size_t)sphereCount * sizeof(Sphere), nullptr, &err);
 	cl::CommandQueue queue(context, device);
+	queue.enqueueWriteBuffer(sphereBuffer, CL_FALSE, 0, (size_t)sphereCount * sizeof(Sphere), spheres);
+	cl::Kernel kernel(program, "render", &err);
+	kernel.setArg(0, pixelBuffer);
+	kernel.setArg(1, width);
+	kernel.setArg(2, height);
+	kernel.setArg(3, sphereBuffer);
+	kernel.setArg(4, sphereCount);
+	
 	queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange((size_t)width * height));
-	queue.enqueueReadBuffer(buffer1, CL_TRUE, 0, (size_t)width * height * sizeof(uint32_t), pixels);
+	queue.enqueueReadBuffer(pixelBuffer, CL_TRUE, 0, (size_t)width * height * sizeof(uint32_t), pixels);
 }
 
 void ComputeAPI::init()

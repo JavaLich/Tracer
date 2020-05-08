@@ -4,14 +4,19 @@
 
 #include <iostream>
 
-typedef cl_float3 Vec3;
+
+struct Sphere {
+	cl_float3 position;
+	cl_uint3 color;
+	cl_float radius;
+};
 
 class ComputeAPI {
 
 public:
 	ComputeAPI();
 
-	void render(uint32_t* pixels, int width, int height);
+	void render(uint32_t* pixels, Sphere* spheres, unsigned int sphereCount, unsigned int width, unsigned int height);
 
 private:
 	void init();

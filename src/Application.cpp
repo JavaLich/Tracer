@@ -28,6 +28,10 @@ void Application::run()
 	memset(pixels, 0, (size_t)config.width * config.height * sizeof(uint32_t));
 	int pitch = config.width * sizeof(uint32_t);
 
+	Sphere* sphere = new Sphere[1];
+	sphere[0].position = cl_float3{ 50.0f, 0.0f, 50.0f };
+	sphere[0].color = cl_uint3{ 0, 255, 0 };
+	sphere[0].radius = 50.0f;
 
 	SDL_Event event;	 // used to store any events from the OS
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
@@ -38,7 +42,7 @@ void Application::run()
 		{
 			running = event.type != SDL_QUIT;
 		}
-		api->render(pixels, config.width, config.height);
+		api->render(pixels, sphere, 1, config.width, config.height);
 		SDL_UpdateTexture(buffer, NULL, pixels, pitch);
 		SDL_RenderClear(renderer);
 		SDL_RenderCopy(renderer, buffer, NULL, NULL);
@@ -70,7 +74,7 @@ void Application::initSDL()
 		std::cerr << "Error failed to create a context\n!";
 	}
 	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-	buffer = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STATIC, config.width, config.height);
+	buffer = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STATIC, config.width, config.height);
 }
 void Application::initCL()
 {

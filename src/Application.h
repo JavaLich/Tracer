@@ -12,11 +12,12 @@
 #include "ComputeAPI.h"
 
 struct AppConfig {
-	int width = 800;
-	int height = 600;
+	unsigned int width = 800;
+	unsigned int height = 600;
 	const char* title = "Raytracer";
-	SDL_PixelFormat* format = SDL_AllocFormat(SDL_PIXELFORMAT_ARGB8888);
+	SDL_PixelFormat* format = SDL_AllocFormat(SDL_PIXELFORMAT_RGBA8888);
 };
+
 
 class Application {
 public:
