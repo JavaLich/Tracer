@@ -18,26 +18,31 @@ void Application::init()
 	initSDL();
 }
 
+
 void Application::run()
 {
 	running = true;
+	bool leftMouseButtonDown = false;
+
+	uint32_t* pixels = new uint32_t[(size_t)config.width * config.height];
+	memset(pixels, 0, (size_t)config.width * config.height * sizeof(uint32_t));
+	int pitch = config.width * sizeof(uint32_t);
+
 
 	SDL_Event event;	 // used to store any events from the OS
-	glClearColor(0, 0, 0, 1);
+	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 	while (running)
 	{
 		// poll for events from SDL
 		while (SDL_PollEvent(&event))
 		{
-			// determine if the user still wants to have the window open
-			// (this basically checks if the user has pressed 'X')
 			running = event.type != SDL_QUIT;
 		}
-
-		glClear(GL_COLOR_BUFFER_BIT);
-
-		// Swap OpenGL buffers
-		SDL_GL_SwapWindow(window);
+		api->render(pixels, config.width, config.height);
+		SDL_UpdateTexture(buffer, NULL, pixels, pitch);
+		SDL_RenderClear(renderer);
+		SDL_RenderCopy(renderer, buffer, NULL, NULL);
+		SDL_RenderPresent(renderer);
 	}
 }
 
@@ -64,8 +69,9 @@ void Application::initSDL()
 		// we'll print out an error message and exit
 		std::cerr << "Error failed to create a context\n!";
 	}
+	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+	buffer = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STATIC, config.width, config.height);
 }
-
 void Application::initCL()
 {
 	api = new ComputeAPI();
@@ -73,6 +79,9 @@ void Application::initCL()
 
 void Application::destroy()
 {
+	SDL_DestroyTexture(buffer);
+	SDL_DestroyRenderer(renderer);
+
 	// Destroy the context
 	SDL_GL_DeleteContext(context);
 

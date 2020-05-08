@@ -15,6 +15,7 @@ struct AppConfig {
 	int width = 800;
 	int height = 600;
 	const char* title = "Raytracer";
+	SDL_PixelFormat* format = SDL_AllocFormat(SDL_PIXELFORMAT_ARGB8888);
 };
 
 class Application {
@@ -33,6 +34,8 @@ private:
 private:
 	SDL_Window* window;
 	SDL_GLContext context;
+	SDL_Texture* buffer;
+	SDL_Renderer* renderer;
 
 	AppConfig config;
 
