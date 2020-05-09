@@ -22,16 +22,17 @@ void Application::init()
 void Application::run()
 {
 	running = true;
-	bool leftMouseButtonDown = false;
 
 	uint32_t* pixels = new uint32_t[(size_t)config.width * config.height];
-	memset(pixels, 0, (size_t)config.width * config.height * sizeof(uint32_t));
 	int pitch = config.width * sizeof(uint32_t);
 
 	Sphere* sphere = new Sphere[1];
-	sphere[0].position = cl_float3{ 50.0f, 0.0f, 50.0f };
+	sphere[0].position = cl_float3{ 0.0f, 0.0f, 5.0f };
 	sphere[0].color = cl_uint3{ 0, 255, 0 };
-	sphere[0].radius = 50.0f;
+	sphere[0].radius = 1.0f;
+
+	Scene scene;
+	float i = 0.0f;
 
 	SDL_Event event;	 // used to store any events from the OS
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
@@ -42,7 +43,9 @@ void Application::run()
 		{
 			running = event.type != SDL_QUIT;
 		}
-		api->render(pixels, sphere, 1, config.width, config.height);
+		i += 0.01f;
+		sphere->position.y = sinf(i)*2;
+		api->render(pixels, sphere, 1, config.width, config.height, scene);
 		SDL_UpdateTexture(buffer, NULL, pixels, pitch);
 		SDL_RenderClear(renderer);
 		SDL_RenderCopy(renderer, buffer, NULL, NULL);
