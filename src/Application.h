@@ -11,6 +11,8 @@
 
 #include "ComputeAPI.h"
 
+#define FRAME_SAMPLE 100
+
 struct AppConfig {
 	unsigned int width = 800;
 	unsigned int height = 600;
@@ -31,6 +33,7 @@ private:
 	void initSDL();
 	void initCL();
 	void destroy();
+	void benchmark();
 
 private:
 	SDL_Window* window;
@@ -41,6 +44,13 @@ private:
 	AppConfig config;
 
 	ComputeAPI* api;
+
+	uint32_t frametimes[FRAME_SAMPLE];
+	uint32_t currentIndex = 0;
+	uint32_t lastFrame;
+	double averageFrameTime;
+	double averageFPS;
+	uint32_t benchmark_count = 0;
 
 	bool running = false;
 };

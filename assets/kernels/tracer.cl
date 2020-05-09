@@ -49,6 +49,7 @@ bool raySphereIntersection(Ray ray, Sphere sphere) {
 kernel void render(global uint *pixels, const uint width, const uint height,
                    global Sphere *spheres, const uint sphereCount,
                    constant Scene *scene) {
+  float aspect_ratio = (float)width / (float)height;
   int gid = get_global_id(0);
   uint x = gid % width;
   uint y = gid / width;
@@ -57,9 +58,9 @@ kernel void render(global uint *pixels, const uint width, const uint height,
 
   float3 screenCenter =
       scene[0].cameraPos + scene[0].viewDir * scene[0].screenDistance;
-  float3 p0 = screenCenter + (float3)(-1.0, (float)height / (float)width, 0.0);
-  float3 p1 = screenCenter + (float3)(1.0, (float)height / (float)width, 0.0);
-  float3 p2 = screenCenter + (float3)(-1.0, -(float)height / (float)width, 0.0);
+  float3 p0 = screenCenter + (float3)(-1.0, 1 / aspect_ratio, 0.0);
+  float3 p1 = screenCenter + (float3)(1.0, 1 / aspect_ratio, 0.0);
+  float3 p2 = screenCenter + (float3)(-1.0, -1 / aspect_ratio, 0.0);
 
   float3 pointOnScreen = p0 + (p1 - p0) * u + (p2 - p0) * v;
   float3 rayDirection = pointOnScreen - scene[0].cameraPos;

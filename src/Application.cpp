@@ -36,20 +36,27 @@ void Application::run()
 
 	SDL_Event event;	 // used to store any events from the OS
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+
+	lastFrame = SDL_GetTicks();
 	while (running)
 	{
+		if (benchmark_count >= 1000) {
+			SDL_SetWindowTitle(window, ("RayTracer | Frametime: " + std::to_string(averageFrameTime) + " | FPS: " + std::to_string(averageFPS)).c_str());
+			benchmark_count = 0;
+		}
 		// poll for events from SDL
 		while (SDL_PollEvent(&event))
 		{
 			running = event.type != SDL_QUIT;
 		}
 		i += 0.01f;
-		sphere->position.y = sinf(i)*2;
+		sphere->position.x = sinf(i)*4;
 		api->render(pixels, sphere, 1, config.width, config.height, scene);
 		SDL_UpdateTexture(buffer, NULL, pixels, pitch);
 		SDL_RenderClear(renderer);
 		SDL_RenderCopy(renderer, buffer, NULL, NULL);
 		SDL_RenderPresent(renderer);
+		benchmark();
 	}
 }
 
@@ -97,4 +104,25 @@ void Application::destroy()
 
 	// And quit SDL
 	SDL_Quit();
+}
+
+void Application::benchmark()
+{
+	uint32_t current = SDL_GetTicks();
+	frametimes[currentIndex] = current - lastFrame;
+	lastFrame = current;
+	benchmark_count += frametimes[currentIndex];
+	double total = 0;
+	for (uint32_t i = 0; i <= currentIndex; i++) {
+		total += frametimes[i];
+	}
+	total /= (double)currentIndex + 1.0f;
+	if (currentIndex < FRAME_SAMPLE -1) {
+		currentIndex++;
+	}
+	else {
+		currentIndex = 0;
+	}
+	averageFrameTime = total;
+	averageFPS = 1000.f / averageFrameTime;
 }
