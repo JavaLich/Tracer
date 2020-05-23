@@ -12,10 +12,13 @@
 #include "ComputeAPI.h"
 
 #define FRAME_SAMPLE 100
+#define APP_WIDTH 800
+#define APP_HEIGHT 600
+#define CAMERA_SPEED 0.01f
 
 struct AppConfig {
-	unsigned int width = 800;
-	unsigned int height = 600;
+	unsigned int width = APP_WIDTH;
+	unsigned int height = APP_HEIGHT;
 	const char* title = "Raytracer";
 	SDL_PixelFormat* format = SDL_AllocFormat(SDL_PIXELFORMAT_RGBA8888);
 };
@@ -34,6 +37,8 @@ private:
 	void initCL();
 	void destroy();
 	void benchmark();
+
+	cl_float3* updateCamera(Scene &scene, float deltaTime);
 
 private:
 	SDL_Window* window;

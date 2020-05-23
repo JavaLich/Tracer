@@ -1,4 +1,5 @@
 #include "Application.h"
+#include <math.h>
 
 Application::Application(AppConfig config)
 {
@@ -30,16 +31,23 @@ void Application::run()
 	sphere[0].position = cl_float3{ 0.0f, 0.0f, 5.0f };
 	sphere[0].color = cl_uint3{ 0, 255, 0 };
 	sphere[0].radius = 1.0f;
-
+	cl_float3* rot = new cl_float3[3];
 	Scene scene;
-	float i = 0.0f;
+	SDL_WarpMouseInWindow(window, APP_WIDTH / 2, APP_HEIGHT / 2);
 
 	SDL_Event event;	 // used to store any events from the OS
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 
 	lastFrame = SDL_GetTicks();
+	Uint64 NOW = SDL_GetPerformanceCounter();
+	Uint64 LAST = 0;
+	double deltaTime = 0;
 	while (running)
 	{
+		LAST = NOW;
+		NOW = SDL_GetPerformanceCounter();
+
+		deltaTime = (double)((NOW - LAST) * 1000 / (double)SDL_GetPerformanceFrequency());
 		if (benchmark_count >= 1000) {
 			SDL_SetWindowTitle(window, ("RayTracer | Frametime: " + std::to_string(averageFrameTime) + " | FPS: " + std::to_string(averageFPS)).c_str());
 			benchmark_count = 0;
@@ -48,10 +56,13 @@ void Application::run()
 		while (SDL_PollEvent(&event))
 		{
 			running = event.type != SDL_QUIT;
+			if (event.type = SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE) {
+				running = false;
+			}
 		}
-		i += 0.01f;
-		sphere->position.x = sinf(i)*4;
-		api->render(pixels, sphere, 1, config.width, config.height, scene);
+
+		rot = updateCamera(scene, (float)deltaTime);
+		api->render(pixels, sphere, 1, config.width, config.height, scene, rot);
 		SDL_UpdateTexture(buffer, NULL, pixels, pitch);
 		SDL_RenderClear(renderer);
 		SDL_RenderCopy(renderer, buffer, NULL, NULL);
@@ -125,4 +136,59 @@ void Application::benchmark()
 	}
 	averageFrameTime = total;
 	averageFPS = 1000.f / averageFrameTime;
+}
+
+float yaw = 0.0f;
+float pitch = 0.0f;
+
+cl_float3* Application::updateCamera(Scene& scene, float deltaTime)
+{
+	int xpos, ypos;
+	SDL_GetMouseState(&xpos, &ypos);
+	SDL_WarpMouseInWindow(window, APP_WIDTH/2, APP_HEIGHT/2);
+	float xoffset = xpos-APP_WIDTH/2;
+	float yoffset =  APP_HEIGHT/2-ypos;
+	float sensitivity = 0.1f;
+	xoffset *= -sensitivity;
+	yoffset *= -sensitivity;
+	yaw += xoffset;
+	pitch += yoffset;
+	if (pitch > 89.0f)
+		pitch = 89.0f;
+	if (pitch < -89.0f)
+		pitch = -89.0f;
+	cl_float3 rotPitch[3] = { cl_float3{1, 0, 0},
+							cl_float3{0, cosf((pitch*M_PI)/180), -sinf((pitch*M_PI)/180)},
+							cl_float3{0, sinf((pitch*M_PI/180)), cosf((pitch*M_PI)/180)} };
+	cl_float3 rotYaw[3] = { cl_float3{cosf((yaw*M_PI)/180), 0, -sinf((yaw * M_PI) / 180)},
+							cl_float3{0, 1, 0},
+							cl_float3{sinf((yaw * M_PI) / 180), 0, cosf((yaw * M_PI) / 180)}};
+	cl_float3* rot = new cl_float3[3];
+	rot[0] = cl_float3{ rotPitch[0].x * rotYaw[0].x + rotPitch[0].y * rotYaw[1].x + rotPitch[0].z * rotYaw[2].x, rotPitch[0].x * rotYaw[0].y + rotPitch[0].y * rotYaw[1].y + rotPitch[0].z * rotYaw[2].y, rotPitch[0].x * rotYaw[0].z + rotPitch[0].y * rotYaw[1].z + rotPitch[0].z * rotYaw[2].z };
+	rot[1] = cl_float3{ rotPitch[1].x * rotYaw[0].x + rotPitch[1].y * rotYaw[1].x + rotPitch[1].z * rotYaw[2].x, rotPitch[1].x * rotYaw[0].y + rotPitch[1].y * rotYaw[1].y + rotPitch[1].z * rotYaw[2].y, rotPitch[1].x * rotYaw[0].z + rotPitch[1].y * rotYaw[1].z + rotPitch[1].z * rotYaw[2].z };
+	rot[2] = cl_float3{ rotPitch[2].x * rotYaw[0].x + rotPitch[2].y * rotYaw[1].x + rotPitch[2].z * rotYaw[2].x, rotPitch[2].x * rotYaw[0].y + rotPitch[2].y * rotYaw[1].y + rotPitch[2].z * rotYaw[2].y, rotPitch[2].x * rotYaw[0].z + rotPitch[2].y * rotYaw[1].z + rotPitch[2].z * rotYaw[2].z };
+
+	const Uint8* state = SDL_GetKeyboardState(NULL);
+
+	if (state[SDL_SCANCODE_W]) {
+		scene.cameraPos = cl_float3{ (rot[0].x * 0.0f + rot[0].y * 0.0f + rot[0].z * CAMERA_SPEED * deltaTime)+scene.cameraPos.x,
+	  (rot[1].x * 0.0f + rot[1].y * 0.0f + rot[1].z * CAMERA_SPEED *deltaTime)+scene.cameraPos.y,
+	  (rot[2].x * 0.0f + rot[2].y * 0.0f + rot[2].z * CAMERA_SPEED *deltaTime)+scene.cameraPos.z };
+	}
+	if (state[SDL_SCANCODE_S]) {
+		scene.cameraPos = cl_float3{ (rot[0].x * 0.0f + rot[0].y * 0.0f + rot[0].z * -CAMERA_SPEED * deltaTime) + scene.cameraPos.x,
+	  (rot[1].x * 0.0f + rot[1].y * 0.0f + rot[1].z * -CAMERA_SPEED * deltaTime) + scene.cameraPos.y,
+	  (rot[2].x * 0.0f + rot[2].y * 0.0f + rot[2].z * -CAMERA_SPEED * deltaTime) + scene.cameraPos.z };
+	}
+	if (state[SDL_SCANCODE_D]) {
+		scene.cameraPos = cl_float3{ (rot[0].x * CAMERA_SPEED * deltaTime + rot[0].y * 0.0f + rot[0].z * 0.0f) + scene.cameraPos.x,
+	  (rot[1].x * CAMERA_SPEED * deltaTime + rot[1].y * 0.0f + rot[1].z * 0.0f) + scene.cameraPos.y,
+	  (rot[2].x * CAMERA_SPEED * deltaTime + rot[2].y * 0.0f + rot[2].z * 0.0f) + scene.cameraPos.z };
+	}
+	if (state[SDL_SCANCODE_A]) {
+		scene.cameraPos = cl_float3{ (rot[0].x * -CAMERA_SPEED * deltaTime + rot[0].y * 0.0f + rot[0].z * 0.0f) + scene.cameraPos.x,
+	  (rot[1].x * -CAMERA_SPEED * deltaTime + rot[1].y * 0.0f + rot[1].z * 0.0f) + scene.cameraPos.y,
+	  (rot[2].x * -CAMERA_SPEED * deltaTime + rot[2].y * 0.0f + rot[2].z * 0.0f) + scene.cameraPos.z };
+	}
+	return rot;
 }

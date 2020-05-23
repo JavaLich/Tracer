@@ -13,7 +13,6 @@ struct Sphere {
 
 struct Scene {
 	cl_float3 cameraPos = cl_float3{ 0.0f, 0.0f, 0.0f };
-	cl_float3 viewDir = cl_float3{ 0.0f, 0.0f, 1.0f };
 	cl_float screenDistance = 1.0f;
 };
 
@@ -22,7 +21,7 @@ class ComputeAPI {
 public:
 	ComputeAPI();
 
-	void render(uint32_t* pixels, Sphere* spheres, unsigned int sphereCount, unsigned int width, unsigned int height, Scene scene);
+	void render(uint32_t* pixels, Sphere* spheres, unsigned int sphereCount, unsigned int width, unsigned int height, Scene scene, cl_float3* rot);
 
 private:
 	void init();

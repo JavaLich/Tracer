@@ -3,32 +3,36 @@
 #include <string>
 #include <sstream>
 #include <fstream>
-
+#include <filesystem>
 
 ComputeAPI::ComputeAPI()
 {
 	init();
 }
 
-void ComputeAPI::render(uint32_t* pixels, Sphere* spheres, unsigned int sphereCount, unsigned int width, unsigned int height, Scene scene)
+void ComputeAPI::render(uint32_t* pixels, Sphere* spheres, unsigned int sphereCount, unsigned int width, unsigned int height, Scene scene, cl_float3* rot)
 {
 	cl_int err;
 	cl::Buffer pixelBuffer = cl::Buffer(context, CL_MEM_WRITE_ONLY, (size_t)width * height * sizeof(uint32_t), nullptr, &err);
 	cl::Buffer sphereBuffer = cl::Buffer(context, CL_MEM_READ_ONLY, (size_t)sphereCount * sizeof(Sphere), nullptr, &err);
 	cl::Buffer sceneBuffer = cl::Buffer(context, CL_MEM_READ_ONLY, (size_t)sizeof(Scene), nullptr, &err);
+	cl::Buffer rotBuffer = cl::Buffer(context, CL_MEM_READ_ONLY, (size_t)3 * sizeof(cl_float3), nullptr, &err);
 
 	cl::CommandQueue queue(context, device);
 	queue.enqueueWriteBuffer(sphereBuffer, CL_FALSE, 0, (size_t)sphereCount * sizeof(Sphere), spheres);
 	queue.enqueueWriteBuffer(sceneBuffer, CL_FALSE, 0, (size_t)sizeof(scene), (void*)&scene);
+	queue.enqueueWriteBuffer(rotBuffer, CL_FALSE, 0, (size_t)3 * sizeof(cl_float3), rot);
 	cl::Kernel kernel(program, "render", &err);
 	kernel.setArg(0, pixelBuffer);
 	kernel.setArg(1, width);
 	kernel.setArg(2, height);
 	kernel.setArg(3, sphereBuffer);
 	kernel.setArg(4, sphereCount);
-	kernel.setArg(5, sceneBuffer);
+	kernel.setArg(5, rotBuffer);
+	kernel.setArg(6, sceneBuffer);
 	
 	queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange((size_t)width * height));
+	//queue.enqueueTask(kernel);
 	queue.enqueueReadBuffer(pixelBuffer, CL_TRUE, 0, (size_t)width * height * sizeof(uint32_t), pixels);
 }
 
@@ -97,6 +101,9 @@ void ComputeAPI::initProgram()
 		std::ostringstream ss;
 		ss << f.rdbuf();
 		code = ss.str();
+	}
+	else {
+		std::cout << "Couldn't find kernel file" << std::endl;
 	}
 	cl::Program::Sources source;
 	source.push_back({ code.c_str(), code.length() });
