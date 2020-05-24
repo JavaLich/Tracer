@@ -18,7 +18,6 @@ typedef struct Sphere {
 
 typedef struct Scene {
   float3 cameraPos;
-  float3 viewDir;
   float screenDistance;
 } Scene;
 
@@ -28,10 +27,15 @@ typedef struct Ray {
   float length;
 } Ray;
 
-bool raySphereIntersection(Ray ray, Sphere sphere) {
-  float3 originToSphere = sphere.position - ray.origin;
-  float projection = dot(originToSphere, ray.direction);
-  float3 distanceVector = originToSphere - ray.direction * projection;
+typedef struct Light {
+  float3 color;
+  float3 position;
+} Light;
+
+bool raySphereIntersection(Ray *ray, Sphere sphere) {
+  float3 originToSphere = sphere.position - ray->origin;
+  float projection = dot(originToSphere, ray->direction);
+  float3 distanceVector = originToSphere - ray->direction * projection;
   float distanceSq = dot(distanceVector, distanceVector);
   float radiusSq = sphere.radius * sphere.radius;
 
@@ -39,8 +43,8 @@ bool raySphereIntersection(Ray ray, Sphere sphere) {
     return false;
   }
   float newLength = projection - sqrt(radiusSq - distanceSq);
-  if (newLength < ray.length && newLength > 0.0) {
-    ray.length = newLength;
+  if (newLength < ray->length && newLength > 0.0) {
+    ray->length = newLength;
     return true;
   }
   return false;
@@ -48,29 +52,73 @@ bool raySphereIntersection(Ray ray, Sphere sphere) {
 
 kernel void render(global uint *pixels, const uint width, const uint height,
                    global Sphere *spheres, const uint sphereCount,
-                   constant Scene *scene) {
+                   global float3 *rot, global Light *lights,
+                   const uint light_count, constant Scene *scene) {
   float aspect_ratio = (float)width / (float)height;
   int gid = get_global_id(0);
   uint x = gid % width;
   uint y = gid / width;
   float u = (float)x / (float)width;
   float v = (float)y / (float)height;
-
-  float3 screenCenter =
-      scene[0].cameraPos + scene[0].viewDir * scene[0].screenDistance;
-  float3 p0 = screenCenter + (float3)(-1.0, 1 / aspect_ratio, 0.0);
-  float3 p1 = screenCenter + (float3)(1.0, 1 / aspect_ratio, 0.0);
-  float3 p2 = screenCenter + (float3)(-1.0, -1 / aspect_ratio, 0.0);
+  float3 viewDir = (float3)(0.0, 0.0, 1.0);
+  viewDir = (float3)(
+      rot[0].x * viewDir.x + rot[0].y * viewDir.y + rot[0].z * viewDir.z,
+      rot[1].x * viewDir.x + rot[1].y * viewDir.y + rot[1].z * viewDir.z,
+      rot[2].x * viewDir.x + rot[2].y * viewDir.y + rot[2].z * viewDir.z);
+  float3 screenCenter = scene[0].cameraPos + viewDir * scene[0].screenDistance;
+  float3 offset = (float3)(-1.0, 1.0 / aspect_ratio, 0.0);
+  float3 offset0 = (float3)(1.0, 1.0 / aspect_ratio, 0.0);
+  float3 offset1 = (float3)(-1.0, -1.0 / aspect_ratio, 0.0);
+  offset =
+      (float3)(rot[0].x * offset.x + rot[0].y * offset.y + rot[0].z * offset.z,
+               rot[1].x * offset.x + rot[1].y * offset.y + rot[1].z * offset.z,
+               rot[2].x * offset.x + rot[2].y * offset.y + rot[2].z * offset.z);
+  offset0 = (float3)(
+      rot[0].x * offset0.x + rot[0].y * offset0.y + rot[0].z * offset0.z,
+      rot[1].x * offset0.x + rot[1].y * offset0.y + rot[1].z * offset0.z,
+      rot[2].x * offset0.x + rot[2].y * offset0.y + rot[2].z * offset0.z);
+  offset1 = (float3)(
+      rot[0].x * offset1.x + rot[0].y * offset1.y + rot[0].z * offset1.z,
+      rot[1].x * offset1.x + rot[1].y * offset1.y + rot[1].z * offset1.z,
+      rot[2].x * offset1.x + rot[2].y * offset1.y + rot[2].z * offset1.z);
+  float3 p0 = screenCenter + offset;
+  float3 p1 = screenCenter + offset0;
+  float3 p2 = screenCenter + offset1;
 
   float3 pointOnScreen = p0 + (p1 - p0) * u + (p2 - p0) * v;
   float3 rayDirection = pointOnScreen - scene[0].cameraPos;
 
   Ray ray = {scene[0].cameraPos, normalize(rayDirection), 10000000.0};
-
+  int hitIndex = -1;
   for (int i = 0; i < sphereCount; i++) {
-    if (raySphereIntersection(ray, spheres[i])) {
-      pixels[gid] = convertColor(spheres[i].color.x, spheres[i].color.y,
-                                 spheres[i].color.z);
+    if (raySphereIntersection(&ray, spheres[i])) {
+      hitIndex = i;
+    }
+  }
+  if (hitIndex != -1) {
+    float3 hitPoint = ray.origin + ray.direction * ray.length;
+    float3 normal = normalize(hitPoint - spheres[hitIndex].position);
+    float3 lightRayDirection = normalize(lights[0].position - hitPoint);
+    float len = length(lights[0].position - hitPoint);
+    Ray lightRay = {hitPoint, lightRayDirection, len};
+    bool occluded = false;
+    for (int i = 0; i < sphereCount; i++) {
+      if (raySphereIntersection(&lightRay, spheres[i])) {
+        occluded = true;
+        break;
+      }
+    }
+    if (!occluded) {
+
+      float d = dot(normal, lightRayDirection);
+      if (d < 0.0)
+        d = 0.0;
+      float3 color = lights[0].color * d;
+      pixels[gid] = convertColor(color.x * spheres[hitIndex].color.x,
+                                 color.y * spheres[hitIndex].color.y,
+                                 color.z * spheres[hitIndex].color.z);
+    } else {
+      pixels[gid] = convertColor(0, 0, 0);
     }
   }
 }
