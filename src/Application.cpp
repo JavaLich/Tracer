@@ -26,8 +26,8 @@ void Application::run()
 
 	uint32_t* pixels = new uint32_t[(size_t)config.width * config.height];
 	int pitch = config.width * sizeof(uint32_t);
-	uint64_t sphere_count = 9;
-	Sphere* sphere = new Sphere[7]; // I dont know why it needs to add 1
+	uint64_t sphere_count = 8;
+	Sphere* sphere = new Sphere[8]; // I dont know why it needs to add 1
 	sphere[0].position = cl_float3{ 0.0f, 0.0f, 65.0f };
 	sphere[0].color = cl_uint3{ 255, 255, 255 };
 	sphere[0].radius = 10.0f;
@@ -49,11 +49,15 @@ void Application::run()
 	sphere[6].position = cl_float3{ 0.0f, 0.0f, -1e5f - 100.0f };
 	sphere[6].color = cl_uint3{0, 55, 0 };
 	sphere[6].radius = 1e5f;
+	sphere[7].position = cl_float3{ 20.0f, -10.0f, 60.0f };
+	sphere[7].color = cl_uint3{ 255, 255, 255 };
+	sphere[7].radius = 10.0f;
 	
 	
-	uint64_t light_count = 1;
+	uint64_t light_count = 2;
 	Light* lights = new Light[light_count];
 	lights[0].position = cl_float3{ 10.0f, 10.0f, -50.0f };
+	lights[1].position = cl_float3{ -10.0f, -10.0f, -50.0f };
 
 	cl_float3* rot = new cl_float3[3];
 	Scene scene;

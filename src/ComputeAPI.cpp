@@ -18,7 +18,7 @@ void ComputeAPI::render(uint32_t* pixels, Sphere* spheres, unsigned int sphereCo
 	cl::Buffer lightBuffer = cl::Buffer(context, CL_MEM_READ_ONLY, (size_t)light_count * sizeof(Light), nullptr, &err);
 	cl::Buffer sceneBuffer = cl::Buffer(context, CL_MEM_READ_ONLY, (size_t)sizeof(Scene), nullptr, &err);
 	cl::Buffer rotBuffer = cl::Buffer(context, CL_MEM_READ_ONLY, (size_t)3 * sizeof(cl_float3), nullptr, &err);
-
+	std::cout << sizeof(Sphere) << std::endl;
 	cl::CommandQueue queue(context, device);
 	queue.enqueueWriteBuffer(sphereBuffer, CL_FALSE, 0, (size_t)sphereCount * sizeof(Sphere), spheres);
 	queue.enqueueWriteBuffer(sceneBuffer, CL_FALSE, 0, (size_t)sizeof(scene), (void*)&scene);

@@ -14,7 +14,7 @@ typedef struct Sphere {
   float3 position;
   uint3 color;
   float radius;
-} Sphere;
+} __attribute__((aligned(64))) Sphere;
 
 typedef struct Scene {
   float3 cameraPos;
@@ -90,35 +90,39 @@ kernel void render(global uint *pixels, const uint width, const uint height,
 
   Ray ray = {scene[0].cameraPos, normalize(rayDirection), 10000000.0};
   int hitIndex = -1;
-  for (int i = 0; i < sphereCount; i++) {
+  for (int i = 0; i < 8; i++) {
     if (raySphereIntersection(&ray, spheres[i])) {
       hitIndex = i;
     }
   }
-  if (hitIndex != -1) {
-    float3 hitPoint = ray.origin + ray.direction * ray.length;
-    float3 normal = normalize(hitPoint - spheres[hitIndex].position);
-    float3 lightRayDirection = normalize(lights[0].position - hitPoint);
-    float len = length(lights[0].position - hitPoint);
-    Ray lightRay = {hitPoint, lightRayDirection, len};
-    bool occluded = false;
-    for (int i = 0; i < sphereCount; i++) {
-      if (raySphereIntersection(&lightRay, spheres[i])) {
-        occluded = true;
-        break;
+  uint3 finalColor = (uint3)(0, 0, 0);
+  for (int i = 0; i < light_count; i++) {
+
+    if (hitIndex != -1) {
+      float3 hitPoint = ray.origin + ray.direction * ray.length;
+      float3 normal = normalize(hitPoint - spheres[hitIndex].position);
+      float3 lightRayDirection = normalize(lights[i].position - hitPoint);
+      float len = length(lights[i].position - hitPoint);
+      Ray lightRay = {hitPoint, lightRayDirection, len};
+      bool occluded = false;
+      for (int i = 0; i < 8; i++) {
+        if (raySphereIntersection(&lightRay, spheres[i])) {
+          occluded = true;
+          break;
+        }
+      }
+      if (!occluded) {
+
+        float d = dot(normal, lightRayDirection);
+        if (d < 0.0)
+          d = 0.0;
+        float3 color = lights[i].color * d;
+        finalColor += (uint3)(color.x * spheres[hitIndex].color.x,
+                              color.y * spheres[hitIndex].color.y,
+                              color.z * spheres[hitIndex].color.z);
       }
     }
-    if (!occluded) {
-
-      float d = dot(normal, lightRayDirection);
-      if (d < 0.0)
-        d = 0.0;
-      float3 color = lights[0].color * d;
-      pixels[gid] = convertColor(color.x * spheres[hitIndex].color.x,
-                                 color.y * spheres[hitIndex].color.y,
-                                 color.z * spheres[hitIndex].color.z);
-    } else {
-      pixels[gid] = convertColor(0, 0, 0);
-    }
   }
+  finalColor = clamp(finalColor, (uint3)(0, 0, 0), (uint3)(255, 255, 255));
+  pixels[gid] = convertColor(finalColor.x, finalColor.y, finalColor.z);
 }

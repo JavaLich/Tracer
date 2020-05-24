@@ -5,7 +5,7 @@
 #include <iostream>
 
 
-struct Sphere {
+__declspec(align(64)) struct Sphere {
 	cl_float3 position;
 	cl_uint3 color = cl_uint3{ 255, 255, 255 };
 	cl_float radius = 1.0f;
@@ -17,7 +17,7 @@ struct Scene {
 };
 
 struct Light {
-	cl_float3 color = cl_float3{ 1.0f, 1.0f, 1.0f };
+	cl_float3 color = cl_float3{ 0.5f, 0.5f, 0.5f };
 	cl_float3 position = cl_float3{ 0.0f, 0.0f, 0.0f };
 };
 
