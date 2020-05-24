@@ -26,11 +26,35 @@ void Application::run()
 
 	uint32_t* pixels = new uint32_t[(size_t)config.width * config.height];
 	int pitch = config.width * sizeof(uint32_t);
+	uint64_t sphere_count = 9;
+	Sphere* sphere = new Sphere[7]; // I dont know why it needs to add 1
+	sphere[0].position = cl_float3{ 0.0f, 0.0f, 65.0f };
+	sphere[0].color = cl_uint3{ 255, 255, 255 };
+	sphere[0].radius = 10.0f;
+	sphere[1].position = cl_float3{ 1e5f, 0.0f, -2500.0f };
+	sphere[1].color = cl_uint3{ 255, 0, 0 };
+	sphere[1].radius = 1e5f;
+	sphere[2].position = cl_float3{ -1e5f, 0.0f, -2500.0f };
+	sphere[2].color = cl_uint3{ 0, 255, 0 };
+	sphere[2].radius = 1e5f;
+	sphere[3].position = cl_float3{ 0.0f, 0.0f, 1e5f + 100 };
+	sphere[3].color = cl_uint3{ 0, 0, 255 };
+	sphere[3].radius = 1e5f;
+	sphere[4].position = cl_float3{ 0.0f, -1e5f, -2500.0f };
+	sphere[4].color = cl_uint3{ 200, 55, 0 };
+	sphere[4].radius = 1e5f;
+	sphere[5].position = cl_float3{ 0.0f, 1e5f, 2500.0f };
+	sphere[5].color = cl_uint3{ 55, 200, 0 };
+	sphere[5].radius = 1e5f;
+	sphere[6].position = cl_float3{ 0.0f, 0.0f, -1e5f - 100.0f };
+	sphere[6].color = cl_uint3{0, 55, 0 };
+	sphere[6].radius = 1e5f;
+	
+	
+	uint64_t light_count = 1;
+	Light* lights = new Light[light_count];
+	lights[0].position = cl_float3{ 10.0f, 10.0f, -50.0f };
 
-	Sphere* sphere = new Sphere[1];
-	sphere[0].position = cl_float3{ 0.0f, 0.0f, 5.0f };
-	sphere[0].color = cl_uint3{ 0, 255, 0 };
-	sphere[0].radius = 1.0f;
 	cl_float3* rot = new cl_float3[3];
 	Scene scene;
 	SDL_WarpMouseInWindow(window, APP_WIDTH / 2, APP_HEIGHT / 2);
@@ -62,7 +86,7 @@ void Application::run()
 		}
 
 		rot = updateCamera(scene, (float)deltaTime);
-		api->render(pixels, sphere, 1, config.width, config.height, scene, rot);
+		api->render(pixels, sphere, sphere_count, config.width, config.height, scene, lights, light_count,  rot);
 		SDL_UpdateTexture(buffer, NULL, pixels, pitch);
 		SDL_RenderClear(renderer);
 		SDL_RenderCopy(renderer, buffer, NULL, NULL);
@@ -157,10 +181,10 @@ cl_float3* Application::updateCamera(Scene& scene, float deltaTime)
 		pitch = 89.0f;
 	if (pitch < -89.0f)
 		pitch = -89.0f;
-	cl_float3 rotPitch[3] = { cl_float3{1, 0, 0},
+	cl_float3 rotYaw[3] = { cl_float3{1, 0, 0},
 							cl_float3{0, cosf((pitch*M_PI)/180), -sinf((pitch*M_PI)/180)},
 							cl_float3{0, sinf((pitch*M_PI/180)), cosf((pitch*M_PI)/180)} };
-	cl_float3 rotYaw[3] = { cl_float3{cosf((yaw*M_PI)/180), 0, -sinf((yaw * M_PI) / 180)},
+	cl_float3 rotPitch[3] = { cl_float3{cosf((yaw*M_PI)/180), 0, -sinf((yaw * M_PI) / 180)},
 							cl_float3{0, 1, 0},
 							cl_float3{sinf((yaw * M_PI) / 180), 0, cosf((yaw * M_PI) / 180)}};
 	cl_float3* rot = new cl_float3[3];
