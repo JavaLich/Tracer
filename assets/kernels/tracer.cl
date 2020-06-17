@@ -1,3 +1,5 @@
+#define SPHERE_COUNT 8
+
 uint convertColor(uchar r, uchar g, uchar b) {
   uint result = 0;
   result += r;
@@ -17,6 +19,8 @@ typedef struct Sphere {
 } __attribute__((aligned(64))) Sphere;
 
 typedef struct Scene {
+  Sphere spheres[SPHERE_COUNT];
+
   float3 cameraPos;
   float screenDistance;
 } Scene;
@@ -53,7 +57,7 @@ bool raySphereIntersection(Ray *ray, Sphere sphere) {
 kernel void render(global uint *pixels, const uint width, const uint height,
                    global Sphere *spheres, const uint sphereCount,
                    global float3 *rot, global Light *lights,
-                   const uint light_count, constant Scene *scene) {
+                   const uint light_count, global Scene *scene) {
   float aspect_ratio = (float)width / (float)height;
   int gid = get_global_id(0);
   uint x = gid % width;
@@ -91,7 +95,7 @@ kernel void render(global uint *pixels, const uint width, const uint height,
   Ray ray = {scene[0].cameraPos, normalize(rayDirection), 10000000.0};
   int hitIndex = -1;
   for (int i = 0; i < 8; i++) {
-    if (raySphereIntersection(&ray, spheres[i])) {
+    if (raySphereIntersection(&ray, scene->spheres[i])) {
       hitIndex = i;
     }
   }
@@ -100,13 +104,13 @@ kernel void render(global uint *pixels, const uint width, const uint height,
 
     if (hitIndex != -1) {
       float3 hitPoint = ray.origin + ray.direction * ray.length;
-      float3 normal = normalize(hitPoint - spheres[hitIndex].position);
+      float3 normal = normalize(hitPoint - scene->spheres[hitIndex].position);
       float3 lightRayDirection = normalize(lights[i].position - hitPoint);
       float len = length(lights[i].position - hitPoint);
       Ray lightRay = {hitPoint, lightRayDirection, len};
       bool occluded = false;
       for (int i = 0; i < 8; i++) {
-        if (raySphereIntersection(&lightRay, spheres[i])) {
+        if (raySphereIntersection(&lightRay, scene->spheres[i])) {
           occluded = true;
           break;
         }
@@ -117,12 +121,13 @@ kernel void render(global uint *pixels, const uint width, const uint height,
         if (d < 0.0)
           d = 0.0;
         float3 color = lights[i].color * d;
-        finalColor += (uint3)(color.x * spheres[hitIndex].color.x,
-                              color.y * spheres[hitIndex].color.y,
-                              color.z * spheres[hitIndex].color.z);
+        finalColor += (uint3)(color.x * scene->spheres[hitIndex].color.x,
+                              color.y * scene->spheres[hitIndex].color.y,
+                              color.z * scene->spheres[hitIndex].color.z);
       }
     }
   }
   finalColor = clamp(finalColor, (uint3)(0, 0, 0), (uint3)(255, 255, 255));
-  pixels[gid] = convertColor(finalColor.x, finalColor.y, finalColor.z);
+  pixels[gid] = convertColor(255, 255, 255);
+  // finalColor.x, finalColor.y, finalColor.z
 }

@@ -1,5 +1,7 @@
 #include "Application.h"
+
 #include <math.h>
+#include <iterator>
 
 Application::Application(AppConfig config)
 {
@@ -26,11 +28,10 @@ void Application::run()
 
 	uint32_t* pixels = new uint32_t[(size_t)config.width * config.height];
 	int pitch = config.width * sizeof(uint32_t);
-	uint64_t sphere_count = 8;
-	Sphere* sphere = new Sphere[8]; // I dont know why it needs to add 1
+	Sphere* sphere = new Sphere[SPHERE_COUNT]; 
 	sphere[0].position = cl_float3{ 0.0f, 0.0f, 65.0f };
 	sphere[0].color = cl_uint3{ 255, 255, 255 };
-	sphere[0].radius = 10.0f;
+	sphere[0].radius = 1.0f;
 	sphere[1].position = cl_float3{ 1e5f, 0.0f, -2500.0f };
 	sphere[1].color = cl_uint3{ 255, 0, 0 };
 	sphere[1].radius = 1e5f;
@@ -51,7 +52,7 @@ void Application::run()
 	sphere[6].radius = 1e5f;
 	sphere[7].position = cl_float3{ 20.0f, -10.0f, 60.0f };
 	sphere[7].color = cl_uint3{ 255, 255, 255 };
-	sphere[7].radius = 10.0f;
+	sphere[7].radius = 1.0f;
 	
 	
 	uint64_t light_count = 2;
@@ -61,11 +62,11 @@ void Application::run()
 
 	cl_float3* rot = new cl_float3[3];
 	Scene scene;
+	std::copy(sphere, sphere+SPHERE_COUNT, std::begin(scene.spheres));
 	SDL_WarpMouseInWindow(window, APP_WIDTH / 2, APP_HEIGHT / 2);
 
 	SDL_Event event;	 // used to store any events from the OS
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-
 	lastFrame = SDL_GetTicks();
 	Uint64 NOW = SDL_GetPerformanceCounter();
 	Uint64 LAST = 0;
@@ -90,7 +91,7 @@ void Application::run()
 		}
 
 		rot = updateCamera(scene, (float)deltaTime);
-		api->render(pixels, sphere, sphere_count, config.width, config.height, scene, lights, light_count,  rot);
+		api->render(pixels, config.width, config.height, &scene, lights, (unsigned int)light_count,  rot);
 		SDL_UpdateTexture(buffer, NULL, pixels, pitch);
 		SDL_RenderClear(renderer);
 		SDL_RenderCopy(renderer, buffer, NULL, NULL);
@@ -174,8 +175,8 @@ cl_float3* Application::updateCamera(Scene& scene, float deltaTime)
 	int xpos, ypos;
 	SDL_GetMouseState(&xpos, &ypos);
 	SDL_WarpMouseInWindow(window, APP_WIDTH/2, APP_HEIGHT/2);
-	float xoffset = xpos-APP_WIDTH/2;
-	float yoffset =  APP_HEIGHT/2-ypos;
+	float xoffset = (float)xpos-APP_WIDTH/2;
+	float yoffset =  APP_HEIGHT/2-(float)ypos;
 	float sensitivity = 0.1f;
 	xoffset *= -sensitivity;
 	yoffset *= -sensitivity;
@@ -186,11 +187,11 @@ cl_float3* Application::updateCamera(Scene& scene, float deltaTime)
 	if (pitch < -89.0f)
 		pitch = -89.0f;
 	cl_float3 rotYaw[3] = { cl_float3{1, 0, 0},
-							cl_float3{0, cosf((pitch*M_PI)/180), -sinf((pitch*M_PI)/180)},
-							cl_float3{0, sinf((pitch*M_PI/180)), cosf((pitch*M_PI)/180)} };
-	cl_float3 rotPitch[3] = { cl_float3{cosf((yaw*M_PI)/180), 0, -sinf((yaw * M_PI) / 180)},
+							cl_float3{0, cosf((pitch*(float)M_PI)/180), -sinf((pitch* (float)M_PI)/180)},
+							cl_float3{0, sinf((pitch* (float)M_PI/180)), cosf((pitch* (float)M_PI)/180)} };
+	cl_float3 rotPitch[3] = { cl_float3{cosf((yaw* (float)M_PI)/180), 0, -sinf((yaw * (float)M_PI) / 180)},
 							cl_float3{0, 1, 0},
-							cl_float3{sinf((yaw * M_PI) / 180), 0, cosf((yaw * M_PI) / 180)}};
+							cl_float3{sinf((yaw * (float)M_PI) / 180), 0, cosf((yaw * (float)M_PI) / 180)}};
 	cl_float3* rot = new cl_float3[3];
 	rot[0] = cl_float3{ rotPitch[0].x * rotYaw[0].x + rotPitch[0].y * rotYaw[1].x + rotPitch[0].z * rotYaw[2].x, rotPitch[0].x * rotYaw[0].y + rotPitch[0].y * rotYaw[1].y + rotPitch[0].z * rotYaw[2].y, rotPitch[0].x * rotYaw[0].z + rotPitch[0].y * rotYaw[1].z + rotPitch[0].z * rotYaw[2].z };
 	rot[1] = cl_float3{ rotPitch[1].x * rotYaw[0].x + rotPitch[1].y * rotYaw[1].x + rotPitch[1].z * rotYaw[2].x, rotPitch[1].x * rotYaw[0].y + rotPitch[1].y * rotYaw[1].y + rotPitch[1].z * rotYaw[2].y, rotPitch[1].x * rotYaw[0].z + rotPitch[1].y * rotYaw[1].z + rotPitch[1].z * rotYaw[2].z };
