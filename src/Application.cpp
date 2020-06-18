@@ -55,14 +55,14 @@ void Application::run()
 	sphere[7].radius = 1.0f;
 	
 	
-	uint64_t light_count = 2;
-	Light* lights = new Light[light_count];
+	Light* lights = new Light[LIGHT_COUNT];
 	lights[0].position = cl_float3{ 10.0f, 10.0f, -50.0f };
 	lights[1].position = cl_float3{ -10.0f, -10.0f, -50.0f };
 
 	cl_float3* rot = new cl_float3[3];
 	Scene scene;
 	std::copy(sphere, sphere+SPHERE_COUNT, std::begin(scene.spheres));
+	std::copy(lights, lights + LIGHT_COUNT, std::begin(scene.lights));
 	SDL_WarpMouseInWindow(window, APP_WIDTH / 2, APP_HEIGHT / 2);
 
 	SDL_Event event;	 // used to store any events from the OS
@@ -91,7 +91,7 @@ void Application::run()
 		}
 
 		rot = updateCamera(scene, (float)deltaTime);
-		api->render(pixels, config.width, config.height, &scene, lights, (unsigned int)light_count,  rot);
+		api->render(pixels, config.width, config.height, &scene, rot);
 		SDL_UpdateTexture(buffer, NULL, pixels, pitch);
 		SDL_RenderClear(renderer);
 		SDL_RenderCopy(renderer, buffer, NULL, NULL);

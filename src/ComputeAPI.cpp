@@ -10,25 +10,21 @@ ComputeAPI::ComputeAPI()
 	init();
 }
 
-void ComputeAPI::render(uint32_t* pixels, unsigned int width, unsigned int height, Scene* scene, Light* lights, unsigned int light_count, cl_float3* rot)
+void ComputeAPI::render(uint32_t* pixels, unsigned int width, unsigned int height, Scene* scene, cl_float3* rot)
 {
 	cl_int err;
 	cl::Buffer pixelBuffer = cl::Buffer(context, CL_MEM_WRITE_ONLY, (size_t)width * height * sizeof(uint32_t), nullptr, &err);
-	cl::Buffer lightBuffer = cl::Buffer(context, CL_MEM_READ_ONLY, (size_t)light_count * sizeof(Light), nullptr, &err);
 	cl::Buffer sceneBuffer = cl::Buffer(context, CL_MEM_READ_ONLY, (size_t)sizeof(Scene), nullptr, &err);
 	cl::Buffer rotBuffer = cl::Buffer(context, CL_MEM_READ_ONLY, (size_t)3 * sizeof(cl_float3), nullptr, &err);
 	cl::CommandQueue queue(context, device);
 	queue.enqueueWriteBuffer(sceneBuffer, CL_FALSE, 0, (size_t)sizeof(Scene), (void*)scene);
-	queue.enqueueWriteBuffer(lightBuffer, CL_FALSE, 0, (size_t)sizeof(Light) * light_count, lights);
 	queue.enqueueWriteBuffer(rotBuffer, CL_FALSE, 0, (size_t)3 * sizeof(cl_float3), rot);
 	cl::Kernel kernel(program, "render", &err);
 	kernel.setArg(0, pixelBuffer);
 	kernel.setArg(1, width);
 	kernel.setArg(2, height);
 	kernel.setArg(3, rotBuffer);
-	kernel.setArg(4, lightBuffer);
-	kernel.setArg(5, light_count);
-	kernel.setArg(6, sceneBuffer);
+	kernel.setArg(4, sceneBuffer);
 	
 	queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange((size_t)width * height));
 	//queue.enqueueTask(kernel);
